@@ -109,6 +109,34 @@ echo "FROM logs | LIMIT 5" | pyesql parse -
 | Utilities      | `URI_PARTS`, `REGISTERED_DOMAIN`, `METRICS_INFO`, `TS_INFO` |
 | Config         | `SET` |
 
+## Error handling
+
+`EsqlSyntaxError` is raised for both bad tokens (lexer) and structural problems (parser). It exposes `line`, `col`, and `text` attributes for precise reporting.
+
+**Unterminated string literal** (lexer-level):
+
+```python
+from pyesql import parse
+from pyesql.errors import EsqlSyntaxError
+
+try:
+    parse('FROM logs | WHERE message == "unclosed')
+except EsqlSyntaxError as e:
+    print(e)
+    # Unterminated string literal at line 1, col 29 near '"unclosed'
+    print(e.line, e.col)  # 1 29
+```
+
+**Missing expression after command keyword** (parser-level):
+
+```python
+try:
+    parse("FROM logs | WHERE")
+except EsqlSyntaxError as e:
+    print(e)
+    # Expected expression, got 'EOF' ('') at line 1, col 18
+```
+
 ## Running tests
 
 ```bash
