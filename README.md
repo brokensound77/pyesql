@@ -125,3 +125,8 @@ pyesql/
 tests/
 └── test_parser.py
 ```
+
+## Note on compatibility
+
+Built based on elasticsearch commit: de1d740c6270076b1162cbc72bff7820d7c338e2. 
+ES|QL is rapidly changing ... updates will be sporadic, at best ...
