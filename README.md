@@ -7,8 +7,13 @@ No Java, no ANTLR runtime. Pure Python.
 ## Installation
 
 ```bash
-cd pyesql
-pip install -e ".[dev]"
+uv sync
+```
+
+To also install dev dependencies (required for testing):
+
+```bash
+uv sync --extra dev
 ```
 
 ## Quick start
@@ -107,7 +112,15 @@ echo "FROM logs | LIMIT 5" | pyesql parse -
 ## Running tests
 
 ```bash
-python -m pytest tests/ -v
+uv run pytest
+```
+
+Or via the Makefile:
+
+```bash
+make test        # run tests
+make lint        # ruff check
+make coverage    # tests with coverage report
 ```
 
 ## Package layout
