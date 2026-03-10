@@ -2,7 +2,7 @@
 
 A standalone Python parser for [ES|QL](https://www.elastic.co/guide/en/elasticsearch/reference/current/esql.html) (Elasticsearch Query Language) that produces an AST for testing and validation.
 
-No Java, no ANTLR runtime. Pure Python ≥ 3.9.
+No Java, no ANTLR runtime. Pure Python.
 
 ## Installation
 
@@ -107,7 +107,7 @@ echo "FROM logs | LIMIT 5" | pyesql parse -
 ## Running tests
 
 ```bash
-python -m pytest pyesql/tests/ -v
+python -m pytest tests/ -v
 ```
 
 ## Package layout
@@ -122,6 +122,6 @@ pyesql/
 ├── walker.py      walk(), find_all(), find_first(), filter_nodes()
 ├── errors.py      EsqlSyntaxError, EsqlParseError
 ├── cli.py         `pyesql` command-line tool
-└── tests/
-    └── test_parser.py
+tests/
+└── test_parser.py
 ```
