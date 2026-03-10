@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyesql"
+version = "0.1.0"
+description = "Pure python parser for Elasticsearch ES|QL queries"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Apache-2.0" }
+keywords = ["elasticsearch", "esql", "parser", "ast"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "ruff",
+]
+
+[project.scripts]
+pyesql = "pyesql.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyesql*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.coverage.run]
+source = ["pyesql"]
+omit = ["tests/*"]

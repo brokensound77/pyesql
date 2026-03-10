@@ -1,0 +1,32 @@
+name: Detection Rules
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-detection-rules:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout elastic/detection-rules
+        uses: actions/checkout@v4
+        with:
+          repository: elastic/detection-rules
+          path: detection-rules
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install pyesql
+        run: uv sync --extra dev
+
+      - name: Run detection rules test
+        run: uv run python scripts/test_detection_rules.py detection-rules
