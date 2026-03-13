@@ -1229,7 +1229,48 @@ def _is_unquoted_source(tok: Token) -> bool:
 # ------------------------------------------------------------------
 
 
-def parse(text: str) -> Query:
-    """Parse an ES|QL query string and return the root Query AST node."""
+def parse(
+    text: str,
+    *,
+    schema: "Schema | None" = None,
+    on_unknown: str = "error",
+    on_type_mismatch: str = "error",
+) -> Query:
+    """Parse an ES|QL query string and return the root Query AST node.
+
+    Parameters
+    ----------
+    text:
+        The ES|QL query string.
+    schema:
+        Optional :class:`~pyesql.schema.Schema`.  When supplied, the returned
+        AST is validated against it before being returned.  If validation finds
+        errors a :class:`~pyesql.validator.SchemaValidationError` is raised.
+    on_unknown:
+        Strictness level for unknown field references when *schema* is given.
+        One of ``"error"`` (default), ``"warn"``, or ``"silent"``.
+    on_type_mismatch:
+        Strictness level for type-incompatible literals when *schema* is given.
+        One of ``"error"`` (default), ``"warn"``, or ``"silent"``.
+    """
     tokens = tokenize(text)
-    return Parser(tokens).parse()
+    query = Parser(tokens).parse()
+
+    if schema is not None:
+        from .validator import SchemaValidator  # local import avoids circular dep
+
+        SchemaValidator(
+            schema,
+            on_unknown=on_unknown,  # type: ignore[arg-type]
+            on_type_mismatch=on_type_mismatch,  # type: ignore[arg-type]
+        ).validate(query)
+
+    return query
+
+
+# TYPE_CHECKING-only import so the annotation above resolves without a
+# circular dependency at runtime.
+from typing import TYPE_CHECKING  # noqa: E402
+
+if TYPE_CHECKING:
+    from .schema import Schema  # noqa: F401

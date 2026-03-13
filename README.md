@@ -74,6 +74,155 @@ class CapLimit(Transformer):
         return node
 ```
 
+## Schema validation
+
+pyesql can validate field references and literal types against a data schema.
+Schemas are loaded from flat JSON, nested JSON, or an Elasticsearch index mapping.
+
+### Loading a schema
+
+```python
+from pyesql.schema import Schema
+
+# Flat JSON
+schema = Schema.from_dict({
+    "process.pid":   "integer",
+    "process.name":  "keyword",
+    "host.name":     "keyword",
+    "host.ip":       "ip",
+    "@timestamp":    "date",
+    "bytes":         "double",
+    "active":        "boolean",
+})
+
+# Nested JSON (equivalent)
+schema = Schema.from_dict({
+    "process": {"pid": "integer", "name": "keyword"},
+    "host":    {"name": "keyword", "ip": "ip"},
+    "@timestamp": "date",
+    "bytes":      "double",
+    "active":     "boolean",
+})
+
+# Elasticsearch index mapping
+schema = Schema.from_elasticsearch_mapping(mapping_dict)
+# Accepts: full GET /<index>/_mapping response, the "mappings" block,
+# or a raw "properties" block. Multi-index responses are merged.
+
+field_type = schema.get_field_type("process.pid")  # "integer"
+field_type = schema.get_field_type("missing")       # None
+```
+
+### Validating a query
+
+Pass `schema=` to `parse()` to validate inline:
+
+```python
+from pyesql import parse
+from pyesql.validator import SchemaValidationError
+
+try:
+    query = parse(
+        'FROM logs | WHERE process.pid == "not-an-int"',
+        schema=schema,
+    )
+except SchemaValidationError as e:
+    print(e)
+    # Schema validation failed with 1 error(s):
+    #   - Type mismatch: field 'process.pid' is 'integer' but compared to a string literal
+    for issue in e.issues:
+        print(issue.field, issue.message)
+```
+
+Or validate separately using `SchemaValidator`:
+
+```python
+from pyesql import parse
+from pyesql.validator import SchemaValidator, SchemaValidationError
+
+query = parse("FROM logs | WHERE ghost_field == 1 AND process.pid == 1")
+
+validator = SchemaValidator(schema)
+try:
+    issues = validator.validate(query)
+except SchemaValidationError as e:
+    # All errors are collected before raising — not just the first
+    for issue in e.issues:
+        print(issue)
+    # Unknown field 'ghost_field' (field: 'ghost_field')
+```
+
+### Strictness levels
+
+Both `on_unknown` (unknown field names) and `on_type_mismatch` (wrong literal type) are independently configurable:
+
+| Level | Behaviour |
+|---|---|
+| `"error"` | Collect and raise `SchemaValidationError` (default when schema is provided) |
+| `"warn"` | Emit `SchemaValidationWarning` via `warnings` |
+| `"silent"` | Ignore (default when no schema is provided) |
+
+```python
+import warnings
+from pyesql.validator import SchemaValidationWarning
+
+# Downgrade unknown fields to warnings, keep type mismatches as errors
+query = parse(
+    "FROM logs | WHERE unknown_field == 1",
+    schema=schema,
+    on_unknown="warn",
+)
+
+# Catch warnings programmatically
+with warnings.catch_warnings(record=True) as w:
+    warnings.simplefilter("always")
+    query = parse("FROM logs | WHERE unknown == 1", schema=schema, on_unknown="warn")
+    print(w[0].category)  # <class 'SchemaValidationWarning'>
+```
+
+### Computed fields
+
+Fields introduced by `EVAL`, `STATS`, `INLINESTATS`, `RENAME`, `DISSECT`, `GROK`, and
+`COMPLETION` are automatically excluded from schema checks — they don't originate from
+the source index.
+
+For `GROK`, both `%{PATTERN:field}` and `(?<field>...)` named-capture styles are recognised.
+For `COMPLETION`, the target field (e.g. `COMPLETION result = ...`) is tracked.
+
+```python
+# "doubled" and "count" are computed — not flagged as unknown
+query = parse(
+    "FROM logs "
+    "| EVAL doubled = bytes * 2 "
+    "| STATS count = COUNT(*) BY host.name "
+    "| SORT count DESC",
+    schema=schema,
+)
+
+# Inspect computed fields directly
+from pyesql import collect_computed_fields
+
+computed = collect_computed_fields(query)
+print(computed)  # frozenset({'doubled', 'count'})
+```
+
+### Validating against an Elasticsearch beats schema
+
+```python
+import gzip, json
+from pyesql.schema import Schema
+
+with gzip.open("beats_schemas/v9.3.1.json.gz") as f:
+    mapping = json.load(f)
+
+schema = Schema.from_elasticsearch_mapping(mapping)
+
+query = parse(
+    "FROM logs-* | WHERE process.pid == 1 AND host.name == \"web-01\"",
+    schema=schema,
+)
+```
+
 ## CLI
 
 ```bash
@@ -155,16 +304,19 @@ make coverage    # tests with coverage report
 
 ```
 pyesql/
-├── __init__.py    public API: parse(), walk(), find_all(), Visitor, ...
+├── __init__.py    public API: parse(), walk(), find_all(), Visitor, Schema, ...
 ├── ast.py         all AST node dataclasses
 ├── lexer.py       tokenizer (hand-written, no dependencies)
 ├── parser.py      recursive-descent parser
 ├── visitor.py     Visitor and Transformer base classes
 ├── walker.py      walk(), find_all(), find_first(), filter_nodes()
-├── errors.py      EsqlSyntaxError, EsqlParseError
+├── schema.py      Schema (from_dict, from_elasticsearch_mapping)
+├── validator.py   SchemaValidator, ValidationIssue, collect_computed_fields
+├── errors.py      EsqlSyntaxError, EsqlParseError, EsqlSchemaError
 ├── cli.py         `pyesql` command-line tool
 tests/
-└── test_parser.py
+├── test_parser.py
+└── test_schema.py
 ```
 
 ## Note on compatibility
