@@ -19,3 +19,7 @@ class EsqlSyntaxError(EsqlError):
 
 class EsqlParseError(EsqlError):
     """Raised for structural/semantic parse issues."""
+
+
+class EsqlSchemaError(EsqlError):
+    """Base class for schema-related errors."""

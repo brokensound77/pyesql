@@ -34,14 +34,27 @@ Walking with a visitor::
 """
 
 from .ast import *  # noqa: F401, F403  – re-export all AST nodes
-from .errors import EsqlError, EsqlParseError, EsqlSyntaxError
+from .errors import EsqlError, EsqlParseError, EsqlSchemaError, EsqlSyntaxError
 from .parser import parse
+from .schema import Schema
+from .validator import (
+    SchemaValidationError,
+    SchemaValidationWarning,
+    SchemaValidator,
+    ValidationIssue,
+    collect_computed_fields,
+)
 from .visitor import Transformer, Visitor
 from .walker import filter_nodes, find_all, find_first, walk
 
 __all__ = [
     # Parser
     "parse",
+    # Schema
+    "Schema",
+    "SchemaValidator",
+    "ValidationIssue",
+    "collect_computed_fields",
     # Visitors / walkers
     "Visitor",
     "Transformer",
@@ -53,6 +66,10 @@ __all__ = [
     "EsqlError",
     "EsqlSyntaxError",
     "EsqlParseError",
+    "EsqlSchemaError",
+    "SchemaValidationError",
+    "SchemaValidationWarning",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
+__elasticsearch_version__ = "9.x"  # ES|QL spec this parser targets

@@ -1,4 +1,4 @@
-.PHONY: install test coverage lint format clean
+.PHONY: install test coverage lint format fix ci clean
 
 install:
 	uv sync --extra dev
@@ -14,6 +14,15 @@ lint:
 
 format:
 	uv run ruff format .
+
+fix:
+	uv run ruff format .
+	uv run ruff check --fix .
+
+ci:
+	uv run ruff format --check .
+	uv run ruff check .
+	uv run pytest
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} +
