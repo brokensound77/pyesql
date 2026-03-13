@@ -72,4 +72,4 @@ __all__ = [
 ]
 
 __version__ = "0.2.0"
-__elasticsearch_version__ = "9.x"  # ES|QL spec this parser targets
+__elasticsearch_version__ = "9.4"  # ES|QL spec this parser targets
