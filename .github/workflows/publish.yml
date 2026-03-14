@@ -72,7 +72,8 @@ jobs:
 
       - name: Install from wheel artifact
         run: |
-          uv venv
+          uv python install 3.13
+          uv venv --python 3.13
           uv pip install dist/*.whl
 
       - name: Smoke test
