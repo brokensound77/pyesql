@@ -7,12 +7,22 @@ No Java, no ANTLR runtime. Pure Python.
 ## Installation
 
 ```bash
-uv sync
+pip install esql-py
 ```
 
-To also install dev dependencies (required for testing):
+Or with `uv`:
 
 ```bash
+uv add esql-py
+```
+
+### Development setup
+
+Clone the repo and install with dev dependencies:
+
+```bash
+git clone https://github.com/br0k3ns0und/pyesql
+cd pyesql
 uv sync --extra dev
 ```
 

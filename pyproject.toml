@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyesql"
+name = "esql-py"
 version = "0.2.0"
 description = "Pure python parser for Elasticsearch ES|QL queries"
 readme = "README.md"
