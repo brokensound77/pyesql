@@ -70,18 +70,8 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - name: Install from TestPyPI
-        # Retry a few times — TestPyPI can take a moment to make a new release available
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          for i in 1 2 3 4 5; do
-            uv pip install --system \
-              --index-url https://test.pypi.org/simple/ \
-              --extra-index-url https://pypi.org/simple/ \
-              "esql-py==$VERSION" && break
-            echo "Attempt $i failed, retrying in 15s..."
-            sleep 15
-          done
+      - name: Install from wheel artifact
+        run: uv pip install --system dist/*.whl
 
       - name: Smoke test
         run: |
