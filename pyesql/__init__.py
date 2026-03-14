@@ -71,5 +71,5 @@ __all__ = [
     "SchemaValidationWarning",
 ]
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __elasticsearch_version__ = "9.4"  # ES|QL spec this parser targets

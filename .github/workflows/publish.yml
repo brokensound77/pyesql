@@ -71,12 +71,14 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Install from wheel artifact
-        run: uv pip install --system dist/*.whl
+        run: |
+          uv venv
+          uv pip install dist/*.whl
 
       - name: Smoke test
         run: |
-          python -c "import pyesql; print('version:', pyesql.__version__)"
-          python -c "
+          uv run python -c "import pyesql; print('version:', pyesql.__version__)"
+          uv run python -c "
           from pyesql import parse
           from pyesql.schema import Schema
           from pyesql.validator import SchemaValidator
