@@ -55,9 +55,62 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
 
-  # ── 4. Publish to PyPI (requires environment approval) ─────────────────────
-  publish-pypi:
+  # ── 4. Smoke test from TestPyPI ─────────────────────────────────────────────
+  smoke-test:
     needs: publish-testpypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Inspect wheel contents
+        run: unzip -l dist/*.whl
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install from TestPyPI
+        # Retry a few times — TestPyPI can take a moment to make a new release available
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for i in 1 2 3 4 5; do
+            uv pip install --system \
+              --index-url https://test.pypi.org/simple/ \
+              --extra-index-url https://pypi.org/simple/ \
+              "esql-py==$VERSION" && break
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
+
+      - name: Smoke test
+        run: |
+          python -c "import pyesql; print('version:', pyesql.__version__)"
+          python -c "
+          from pyesql import parse
+          from pyesql.schema import Schema
+          from pyesql.validator import SchemaValidator
+
+          # Basic parse
+          q = parse('FROM logs-* | WHERE host.name == \"web-01\" | LIMIT 10')
+          print('parse:  OK —', type(q.source).__name__, '+', len(q.pipes), 'pipe(s)')
+
+          # Schema validation
+          schema = Schema.from_dict({'host.name': 'keyword', 'event.action': 'keyword'})
+          parse('FROM logs | WHERE host.name == \"web-01\"', schema=schema)
+          print('schema: OK')
+
+          # Computed field tracking (EVAL + GROK named capture)
+          from pyesql.validator import collect_computed_fields
+          q2 = parse('FROM logs | EVAL doubled = bytes * 2 | GROK message \"(?<capture>.+)\"')
+          computed = collect_computed_fields(q2)
+          assert 'doubled' in computed and 'capture' in computed, f'missing computed fields: {computed}'
+          print('computed fields: OK —', sorted(computed))
+          "
+
+  # ── 5. Publish to PyPI (requires environment approval) ─────────────────────
+  publish-pypi:
+    needs: smoke-test
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
